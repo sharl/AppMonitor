@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-import tkinter as tk
-from PIL import Image, ImageTk
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-import pystray
-from pystray import MenuItem as item
-import threading
 import os
 import time
+
+from PIL import Image, ImageTk
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+import tkinter as tk
 
 
 class ImageChangeHandler(FileSystemEventHandler):

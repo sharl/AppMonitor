@@ -41,6 +41,8 @@ class MonitorApp:
         self.stop_event = threading.Event()
         self.app = None
         self.filename = str()
+        # 初期状態は表示
+        self.graph = True
         self.viewer = None
         self.logger = None
 
@@ -76,6 +78,13 @@ class MonitorApp:
 
         self.viewer = ImageViewer(self.filename)
         self.viewer.mainloop()
+
+    def toggle_graph(self):
+        self.graph = not self.graph
+        if self.graph:
+            self.show_graph()
+        else:
+            self.hide_graph()
 
     def show_graph(self):
         if self.viewer:
@@ -137,7 +146,7 @@ class MonitorApp:
         # システムトレイアイコンの設定
         self.app = Icon(APP_NAME)
         self.app.menu = Menu(
-            MenuItem(f'{PROCESS_NAME} を監視中...', self.plot, default=True),
+            MenuItem(f'{PROCESS_NAME} を監視中...', self.toggle_graph, default=True),
             MenuItem('Show', self.show_graph),
             MenuItem('Hide', self.hide_graph),
             MenuItem('Exit', self.stopApp)

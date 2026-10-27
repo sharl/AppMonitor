@@ -27,6 +27,7 @@ APP_NAME = 'AppMonitor'
 PPROCESS_ID = None
 PROCESS_NAME = None
 CHECK_INTERVAL = 60             # 監視間隔 (秒)
+SPAN_LENGTH = 0                 # 0: 全期間
 # ----------------
 PreferredAppMode = {
     'Light': 0,
@@ -105,7 +106,7 @@ class MonitorApp:
         time_data = {}
         basename = os.path.splitext(PROCESS_NAME)[0]
         with open(f'log_{basename}.log') as fd:
-            for line in fd.read().split('\n'):
+            for line in fd.read().split('\n')[SPAN_LENGTH:]:
                 tmp = line.split()
                 if tmp and tmp[2] == '[INFO]':
                     # 2025/12/29 07:42:36 [INFO] ADFmonitor.exe 55 MB
@@ -156,15 +157,17 @@ class MonitorApp:
 
 
 @click.command(help='Application Memory Monitor')
-@click.option('-p', '--pid', type=int, default=0, help='target process ID')
-@click.option('-n', '--name', type=str, default=str(), help='target process name (ex. chrome.exe)')
 @click.option('-i', '--interval', type=int, default=60, help='chech interval (seconds)')
-def run(pid, name, interval):
-    global PROCESS_ID, PROCESS_NAME, CHECK_INTERVAL
+@click.option('-l', '--length', type=int, default=0, help='graph span length')
+@click.option('-n', '--name', type=str, default=str(), help='target process name (ex. chrome.exe)')
+@click.option('-p', '--pid', type=int, default=0, help='target process ID')
+def run(pid, name, interval, length):
+    global PROCESS_ID, PROCESS_NAME, CHECK_INTERVAL, SPAN_LENGTH
 
     PROCESS_ID = pid
     PROCESS_NAME = name
     CHECK_INTERVAL = interval
+    SPAN_LENGTH = length
 
     if not PROCESS_NAME and not PROCESS_ID:
         print('Neither --pid nor --name specified', file=sys.stderr)

@@ -106,7 +106,8 @@ class MonitorApp:
         time_data = {}
         basename = os.path.splitext(PROCESS_NAME)[0]
         with open(f'log_{basename}.log') as fd:
-            for line in fd.read().split('\n')[SPAN_LENGTH:]:
+            lines = fd.read().splitlines()
+            for line in lines[len(lines) - SPAN_LENGTH:]:
                 tmp = line.split()
                 if tmp and tmp[2] == '[INFO]':
                     # 2025/12/29 07:42:36 [INFO] ADFmonitor.exe 55 MB

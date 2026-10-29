@@ -103,11 +103,15 @@ class MonitorApp:
         return image
 
     def plot(self):
+        length = SPAN_LENGTH
+
         time_data = {}
         basename = os.path.splitext(PROCESS_NAME)[0]
         with open(f'log_{basename}.log') as fd:
             lines = fd.read().splitlines()
-            for line in lines[len(lines) - SPAN_LENGTH:]:
+            if length == 0:
+                length = len(lines)
+            for line in lines[len(lines) - length:]:
                 tmp = line.split()
                 if tmp and tmp[2] == '[INFO]':
                     # 2025/12/29 07:42:36 [INFO] ADFmonitor.exe 55 MB

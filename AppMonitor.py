@@ -127,6 +127,7 @@ class MonitorApp:
             ys = [time_data[tim] for tim in xs]
 
             fig, ax = plt.subplots(figsize=(10, 5))
+            ax.set_ylim(0, max(ys) + 2)
             ax.plot(xs, ys)
 
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %H:%M'))

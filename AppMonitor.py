@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 from ImageViewer import ImageViewer
+from getVRAMInfo import get_vram_usages
 
 APP_NAME = 'AppMonitor'
 
@@ -58,11 +59,17 @@ class MonitorApp:
                 continue
         return total_mem / (1024 * 1024)
 
+    def get_total_vram_usage(self, process_name):
+        usages = get_vram_usages()
+        usage = usages[process_name] if process_name in usages else 0
+        return usage / (1024 * 1024)
+
     def monitor_loop(self):
         while not self.stop_event.is_set():
             start_time = time.time()
             mem_usage = self.get_total_memory_usage(PROCESS_NAME)
-            title = f'{PROCESS_NAME} {int(mem_usage)} MB'
+            vram_usage = self.get_total_vram_usage(PROCESS_NAME)
+            title = f'{PROCESS_NAME} {int(mem_usage)} MB {int(vram_usage)} MB'
             self.logger.info(title)
             self.app.title = title
             self.plot()
@@ -106,6 +113,7 @@ class MonitorApp:
         length = SPAN_LENGTH
 
         time_data = {}
+        vram_data = {}
         basename = os.path.splitext(PROCESS_NAME)[0]
         with open(f'log_{basename}.log') as fd:
             lines = fd.read().splitlines()
@@ -114,27 +122,42 @@ class MonitorApp:
             for line in lines[len(lines) - length:]:
                 tmp = line.split()
                 if tmp and tmp[2] == '[INFO]':
-                    # 2025/12/29 07:42:36 [INFO] ADFmonitor.exe 55 MB
+                    # 0          1        2      3       4   5  6    7
+                    # 2026/10/31 21:14:25 [INFO] run.exe 231 MB 1920 MB
                     _time = dt.strptime(f'{tmp[0]} {tmp[1]}', '%Y/%m/%d %H:%M:%S')
                     time_data[_time] = int(tmp[4])
+                    if len(tmp) >= 7:
+                        vram_data[_time] = int(tmp[6])
 
         if time_data:
+            #
+            # いろいろ調整中
+            #
+
             # 上下左右余白なし
             mpl.rcParams['axes.xmargin'] = 0
             mpl.rcParams['axes.ymargin'] = 0
 
             xs = time_data.keys()
             ys = [time_data[tim] for tim in xs]
+            vys = [vram_data[tim] if tim in vram_data else 0 for tim in xs]
+
+            ymax = max(max(ys), max(vys))
 
             fig, ax = plt.subplots(figsize=(10, 5))
-            ax.set_ylim(0, int(max(ys) * 1.1))
-            ax.plot(xs, ys)
+            ax.set_ylim(0, int(ymax) * 1.1)
+            ax.set_ylabel('Memory (MB)', color='b')
+            ax.plot(xs, ys, color='b')
+
+            ax2 = ax.twinx()
+            ax2.set_ylim(0, int(ymax * 1.1))
+            ax2.set_ylabel('VRAM (MB)', color='tab:orange')
+            ax2.plot(xs, vys, label='VRAM', color='tab:orange')
 
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %H:%M'))
             fig.autofmt_xdate()
 
             plt.title(f'Memory Consumption {PROCESS_NAME}')
-            plt.ylabel('Memory Used (MB)')
             plt.grid(True)
             plt.tight_layout()
 

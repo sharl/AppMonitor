@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 from ImageViewer import ImageViewer
-from getVRAMInfo import get_vram_usages
+from getVRAMInfo import get_vram_info, get_vram_usages
 
 APP_NAME = 'AppMonitor'
 
@@ -48,6 +48,16 @@ class MonitorApp:
         self.viewer = None
         self.logger = None
 
+        # unit: mebibyte
+        self.mem_total = psutil.virtual_memory().total // (1024 * 1024)
+        self.vram_total = 0
+        vrams = get_vram_info()
+        if vrams:
+            # use first GPU detected
+            self.vram_total = vrams[0].get('vram', 0) // (1024 * 1024)
+        self.mem_usage = 0
+        self.vram_usage = 0
+
     def get_total_memory_usage(self, process_name):
         """指定した名前のプロセス（および子プロセス）の合計メモリ使用量(MB)を取得"""
         total_mem = 0
@@ -67,11 +77,12 @@ class MonitorApp:
     def monitor_loop(self):
         while not self.stop_event.is_set():
             start_time = time.time()
-            mem_usage = self.get_total_memory_usage(PROCESS_NAME)
-            vram_usage = self.get_total_vram_usage(PROCESS_NAME)
-            title = f'{PROCESS_NAME} {int(mem_usage)} MB {int(vram_usage)} MB'
+            self.mem_usage = self.get_total_memory_usage(PROCESS_NAME)
+            self.vram_usage = self.get_total_vram_usage(PROCESS_NAME)
+            title = f'{PROCESS_NAME} {int(self.mem_usage)} MB {int(self.vram_usage)} MB'
             self.logger.info(title)
             self.app.title = title
+            self.app.icon = self.create_image()
             self.plot()
             elapsed = time.time() - start_time
 
@@ -103,10 +114,27 @@ class MonitorApp:
             self.viewer.withdraw()
 
     def create_image(self):
-        width, height = 64, 64
+        width, height, offset, size = 64 * 4, 64 * 4, 10 * 4, 2 * 4
         image = Image.new('RGB', (width, height), (0, 0, 0))
         dc = ImageDraw.Draw(image)
-        dc.ellipse([10, 10, 54, 54], fill=(214, 120, 215))
+
+        mem_perc = self.mem_usage / self.mem_total
+        vram_perc = self.vram_usage / self.vram_total
+        if mem_perc > vram_perc:
+            dc.rectangle((0, height - int(height * mem_perc), height, height), fill='blue')
+            dc.line([
+                (0, height - int(height * vram_perc)),
+                (width, height - int(height * vram_perc)),
+            ], fill='orange', width=size)
+        else:
+            dc.rectangle((0, height - int(height * vram_perc), height, height), fill='orange')
+            dc.line([
+                (0, height - int(height * vram_perc)),
+                (width, height - int(height * vram_perc)),
+            ], fill='blue', width=size)
+
+        dc.ellipse([offset, offset, width - offset, height - offset], fill=(214, 120, 215))
+
         return image
 
     def plot(self):

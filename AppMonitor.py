@@ -180,6 +180,7 @@ class MonitorApp:
             ax2 = ax.twinx()
             ax2.set_ylim(0, int(ymax * 1.1))
             ax2.set_ylabel('VRAM (MB)', color='tab:orange')
+            ax2.fill_between(xs, vys, 0, alpha=0.05, color='tab:orange')
             ax2.plot(xs, vys, label='VRAM', color='tab:orange')
 
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %H:%M'))

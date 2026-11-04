@@ -77,13 +77,16 @@ class MonitorApp:
     def monitor_loop(self):
         while not self.stop_event.is_set():
             start_time = time.time()
-            self.mem_usage = self.get_total_memory_usage(PROCESS_NAME)
-            self.vram_usage = self.get_total_vram_usage(PROCESS_NAME)
-            title = f'{PROCESS_NAME} {int(self.mem_usage)} MB {int(self.vram_usage)} MB'
-            self.logger.info(title)
-            self.app.title = title
-            self.app.icon = self.create_image()
-            self.plot()
+            try:
+                self.mem_usage = self.get_total_memory_usage(PROCESS_NAME)
+                self.vram_usage = self.get_total_vram_usage(PROCESS_NAME)
+                title = f'{PROCESS_NAME} {int(self.mem_usage)} MB {int(self.vram_usage)} MB'
+                self.logger.info(title)
+                self.app.title = title
+                self.app.icon = self.create_image()
+                self.plot()
+            except Exception as e:
+                logger.error(f'monitor loop exception: {e}')
             elapsed = time.time() - start_time
 
             if self.stop_event.wait(CHECK_INTERVAL - elapsed):

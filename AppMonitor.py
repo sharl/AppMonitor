@@ -86,7 +86,7 @@ class MonitorApp:
                 self.app.icon = self.create_image()
                 self.plot()
             except Exception as e:
-                logger.error(f'monitor loop exception: {e}')
+                self.logger.error(f'monitor loop exception: {e}')
             elapsed = time.time() - start_time
 
             if self.stop_event.wait(CHECK_INTERVAL - elapsed):

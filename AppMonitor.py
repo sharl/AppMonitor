@@ -28,7 +28,6 @@ APP_NAME = 'AppMonitor'
 PPROCESS_ID = None
 PROCESS_NAME = None
 CHECK_INTERVAL = 60             # 監視間隔 (秒)
-SPAN_LENGTH = 0                 # 0: 全期間
 # ----------------
 PreferredAppMode = {
     'Light': 0,
@@ -43,6 +42,7 @@ class MonitorApp:
         self.stop_event = threading.Event()
         self.app = None
         self.filename = str()
+        self.span_length = 0            # 全期間
         # 初期状態は表示
         self.graph = True
         self.viewer = None
@@ -140,16 +140,23 @@ class MonitorApp:
 
         return image
 
-    def plot(self):
-        length = SPAN_LENGTH
+    def set_span(self, _, item):
+        self.span_length = int(str(item))
+        print(f'set span to {self.span_length} times')
 
+    def span_checked(self, item):
+        return self.span_length == int(str(item))
+
+    def plot(self):
         time_data = {}
         vram_data = {}
         basename = os.path.splitext(PROCESS_NAME)[0]
         with open(f'log_{basename}.log') as fd:
             lines = fd.read().splitlines()
-            if length == 0:
+            if self.span_length == 0:
                 length = len(lines)
+            else:
+                length = self.span_length
             for line in lines[len(lines) - length:]:
                 tmp = line.split()
                 if tmp and tmp[2] == '[INFO]':
@@ -207,8 +214,19 @@ class MonitorApp:
 
         # システムトレイアイコンの設定
         self.app = Icon(APP_NAME)
+
+        # 表示期間サブメニュー
+        span_length_submenu = []
+        for span in range(0, 1440 + 1, 120):
+            span_length_submenu.append(
+                MenuItem(str(span), self.set_span, checked=lambda x: self.span_checked(x)),
+            )
+
         self.app.menu = Menu(
             MenuItem(f'{PROCESS_NAME} を監視中...', self.toggle_graph, default=True),
+            Menu.SEPARATOR,
+            MenuItem('Span', Menu(*span_length_submenu)),
+            Menu.SEPARATOR,
             MenuItem('Show', self.show_graph),
             MenuItem('Hide', self.hide_graph),
             MenuItem('Exit', self.stopApp)
@@ -219,16 +237,14 @@ class MonitorApp:
 
 @click.command(help='Application Memory Monitor')
 @click.option('-i', '--interval', type=int, default=60, help='chech interval (seconds)')
-@click.option('-l', '--length', type=int, default=0, help='graph span length')
 @click.option('-n', '--name', type=str, default=str(), help='target process name (ex. chrome.exe)')
 @click.option('-p', '--pid', type=int, default=0, help='target process ID')
-def run(pid, name, interval, length):
-    global PROCESS_ID, PROCESS_NAME, CHECK_INTERVAL, SPAN_LENGTH
+def run(pid, name, interval):
+    global PROCESS_ID, PROCESS_NAME, CHECK_INTERVAL
 
     PROCESS_ID = pid
     PROCESS_NAME = name
     CHECK_INTERVAL = interval
-    SPAN_LENGTH = length
 
     if not PROCESS_NAME and not PROCESS_ID:
         print('Neither --pid nor --name specified', file=sys.stderr)

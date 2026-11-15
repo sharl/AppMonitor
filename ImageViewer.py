@@ -25,20 +25,20 @@ class ImageViewer(tk.Tk):
         self.image_path = image_path
 
         self.overrideredirect(True)
-        self.attributes('-topmost', False)
+        # self.attributes('-topmost', False)
         self.configure(bg='black')
         self.withdraw()
 
         self.zoom_level = 1.0
         self.is_fit_mode = False
         self.original_img = None
-        self.topmost_var = tk.BooleanVar(value=False)
+        # self.topmost_var = tk.BooleanVar(value=False)
 
         self.label = tk.Label(self, bg='black')
         self.label.pack(expand=True, fill='both')
 
         self.context_menu = tk.Menu(self, tearoff=0)
-        self.context_menu.add_checkbutton(label='Always on Top', variable=self.topmost_var, command=self.sync_topmost)
+        # self.context_menu.add_checkbutton(label='Always on Top', variable=self.topmost_var, command=self.sync_topmost)
         self.context_menu.add_command(label='Fit (F)', command=self.toggle_fit)
         self.context_menu.add_separator()
         self.context_menu.add_command(label='Hide', command=self.withdraw)
@@ -95,8 +95,8 @@ class ImageViewer(tk.Tk):
             self.zoom_level = 1.0
         self.refresh_display()
 
-    def sync_topmost(self):
-        self.attributes('-topmost', self.topmost_var.get())
+    # def sync_topmost(self):
+    #     self.attributes('-topmost', self.topmost_var.get())
 
     def start_move(self, event):
         self._drag_data = {'x': event.x, 'y': event.y}
@@ -110,7 +110,7 @@ class ImageViewer(tk.Tk):
 
     def show_window(self):
         self.after(0, self.deiconify)
-        self.after(0, lambda: self.attributes('-topmost', True))
+        # self.after(0, lambda: self.attributes('-topmost', True))
 
     def start_watching(self):
         event_handler = ImageChangeHandler(lambda: self.after(0, self.load_image), self.image_path)

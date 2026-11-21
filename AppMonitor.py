@@ -70,17 +70,17 @@ class MonitorApp:
         return total_mem / (1024 * 1024)
 
     def get_total_vram_usage(self, process_name):
-        usages = get_vram_usages()
+        usages, used = get_vram_usages()
         usage = usages[process_name] if process_name in usages else 0
-        return usage / (1024 * 1024)
+        return usage / (1024 * 1024), used / (1024 * 1024)
 
     def monitor_loop(self):
         while not self.stop_event.is_set():
             start_time = time.time()
             try:
                 self.mem_usage = self.get_total_memory_usage(PROCESS_NAME)
-                self.vram_usage = self.get_total_vram_usage(PROCESS_NAME)
-                title = f'{PROCESS_NAME} {int(self.mem_usage)} MB {int(self.vram_usage)} MB'
+                self.vram_usage, used = self.get_total_vram_usage(PROCESS_NAME)
+                title = f'{PROCESS_NAME} {int(self.mem_usage)} MB {int(self.vram_usage)} MB {int(used)} MB'
                 self.logger.info(title)
                 self.app.title = title
                 self.app.icon = self.create_image()
@@ -150,6 +150,7 @@ class MonitorApp:
     def plot(self):
         time_data = {}
         vram_data = {}
+        used_data = {}
         basename = os.path.splitext(PROCESS_NAME)[0]
         with open(f'log_{basename}.log') as fd:
             lines = fd.read().splitlines()
@@ -160,12 +161,14 @@ class MonitorApp:
             for line in lines[len(lines) - length:]:
                 tmp = line.split()
                 if tmp and tmp[2] == '[INFO]':
-                    # 0          1        2      3       4   5  6    7
-                    # 2026/10/31 21:14:25 [INFO] run.exe 231 MB 1920 MB
+                    # 0          1        2      3       4   5  6    7  8    9
+                    # 2026/11/21 17:44:56 [INFO] run.exe 219 MB 4870 MB 6810 MB
                     _time = dt.strptime(f'{tmp[0]} {tmp[1]}', '%Y/%m/%d %H:%M:%S')
                     time_data[_time] = int(tmp[4])
                     if len(tmp) >= 7:
                         vram_data[_time] = int(tmp[6])
+                    if len(tmp) >= 9:
+                        used_data[_time] = int(tmp[8])
 
         if time_data:
             #
@@ -179,8 +182,9 @@ class MonitorApp:
             xs = time_data.keys()
             ys = [time_data[tim] for tim in xs]
             vys = [vram_data[tim] if tim in vram_data else 0 for tim in xs]
+            uys = [used_data[tim] if tim in used_data else 0 for tim in xs]
 
-            ymax = max(max(ys), max(vys))
+            ymax = max(max(ys), max(vys), max(uys))
 
             fig, ax = plt.subplots(figsize=(10, 5))
             ax.set_ylim(0, int(ymax) * 1.1)
@@ -189,9 +193,15 @@ class MonitorApp:
 
             ax2 = ax.twinx()
             ax2.set_ylim(0, int(ymax * 1.1))
-            ax2.set_ylabel('VRAM (MB)', color='tab:orange')
+            ax2.set_ylabel('VRAM (MB)', color='tab:orange', y=0.25)
             ax2.fill_between(xs, vys, 0, alpha=0.05, color='tab:orange')
             ax2.plot(xs, vys, label='VRAM', color='tab:orange')
+
+            ax3 = ax.twinx()
+            ax3.set_ylim(0, int(ymax * 1.1))
+            ax3.set_ylabel('USED (MB)', color='tab:red', y=0.75)
+            ax3.fill_between(xs, uys, 0, alpha=0.05, color='tab:red')
+            ax3.plot(xs, uys, color='tab:red')
 
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %H:%M'))
             fig.autofmt_xdate()
